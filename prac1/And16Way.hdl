@@ -25,5 +25,5 @@ CHIP And16Way {
     And(a=out7, b=out8, out=out78);
     And(a=out12, b=out34, out=out1234);
     And(a=out56, b=out78, out=out5678);
-    And(a=out1245, b=out5678, out=out);
+    And(a=out1234, b=out5678, out=out);
 }
