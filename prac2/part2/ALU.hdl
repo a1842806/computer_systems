@@ -43,26 +43,24 @@ CHIP ALU {
 
     PARTS:
     // Put you code here:
-    // Prepare inputs
-    Mux16(a=x, b=false, sel=zx, out=xPre);
-    Mux16(a=y, b=false, sel=zy, out=yPre);
-    Not16(in=xPre, out=xInv);
-    Not16(in=yPre, out=yInv);
-    Mux16(a=xPre, b=xInv, sel=nx, out=xFinal);
-    Mux16(a=yPre, b=yInv, sel=ny, out=yFinal);
+    // Input to zero
+    Mux16(a=x, sel=zx, out=x0);
+    Mux16(a=y, sel=zy, out=y0);
 
-    // Calculate result
-    And16(a=xFinal, b=yFinal, out=andRes);
-    Add16(a=xFinal, b=yFinal, out=addRes);
-    Mux16(a=andRes, b=addRes, sel=f, out=firstRes);
+    // Input inversion
+    Not16(in=x0, out=xnot);
+    Not16(in=y0, out=ynot);
 
-    // Negate result
-    Not16(in=firstRes, out=negatedResult);
-    Mux16(a=firstRes, b=negatedResult, sel=no, out=out, out[0..7]=left, out[8..15]=right, out[15]=ng);
+    // Final input
+    Mux16(a=x0, b=xnot, sel=nx, out=xfinal);
+    Mux16(a=y0, b=ynot, sel=ny, out=yfinal);
+    
+    // Get output
+    And16(a=xfinal, b=yfinal, out=and);
+    Add16(a=xfinal, b=yfinal, out=add);
+    Mux16(a=and, b=add, sel=f, out=outpre);
+    Not16(in=outpre, )
 
-    // Check zero
-    Or8Way(in=left, out=orLeft);
-    Or8Way(in=right, out=orRight);
-    Or(a=orLeft, b=orRight, out=orCombined);
-    Not(in=orCombined, out=zr);
+    // Zero comparison
+
 }
