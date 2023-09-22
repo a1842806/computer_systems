@@ -19,7 +19,7 @@ set RAM[24] 6,  // Set Arr[4]
 set RAM[25] 1,  // Set Arr[5]
 set RAM[26] 8,  // Set Arr[6]
 set RAM[27] 3;  // Set Arr[7]
-repeat 600 {
+repeat 2000 {
   ticktock;    // Run for 600 clock cycles
 }
 set RAM[1] 20,  // Restore arguments in case program used them
