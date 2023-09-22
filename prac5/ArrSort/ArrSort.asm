@@ -30,14 +30,41 @@ D=D-M
 D;JEQ
 
 @temp
+A=M+1
+D=M
+@y
+M=D
+@temp
 A=M
 D=M
-A=A+1
-D=D-M
+@x
+M=D
+@NEG
+D;JLT
 
+(POS)
+@y
+D=M
+@SWAP
+D;JLT
+@CHECK
+0;JMP
+
+(NEG)
+@y
+D=M
+@INNER_LOOP
+D;JGE
+@CHECK
+0;JMP
+
+(CHECK)
+@x
+D=M
+@y
+D=D-M
 @SWAP
 D;JGT
-
 @INNER_LOOP
 0;JMP
 
