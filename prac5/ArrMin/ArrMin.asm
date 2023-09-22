@@ -23,7 +23,7 @@ D;JLT
 (POS)
 @R0
 D=M
-@SWAP
+@LOOP
 D;JLT
 @CHECK
 0;JMP

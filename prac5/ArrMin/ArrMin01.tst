@@ -18,7 +18,7 @@ set RAM[23] 3;
 repeat 300 {
   ticktock;    // Run for 300 clock cycles
 }
-set RAM[1]  5, // Set R1
+set RAM[1]  5, // Set R1 
 set RAM[2]  3,  // Set R2
 set RAM[5] 100, 
 set RAM[6] 90,  
