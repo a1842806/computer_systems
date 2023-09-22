@@ -3,9 +3,9 @@
 // Appendix B of the book "The Elements of Computing Systems"
 
 load ArrSort.asm,
-output-file ArrSort00.out,
-compare-to ArrSort00.cmp,
-output-list RAM[0]%D2.6.2 RAM[1]%D2.6.2 RAM[2]%D2.6.2 RAM[20]%D2.6.2 RAM[21]%D2.6.2 RAM[22]%D2.6.2 RAM[23]%D2.6.2;
+output-file ArrSort03.out,
+compare-to ArrSort03.cmp,
+output-list RAM[0]%D2.6.2 RAM[1]%D2.6.2 RAM[2]%D2.6.2 RAM[20]%D2.6.2 RAM[21]%D2.6.2 RAM[22]%D2.6.2 RAM[23]%D2.6.2 RAM[24]%D2.6.2 RAM[25]%D2.6.2 RAM[26]%D2.6.2 RAM[27]%D2.6.2;
 
 set PC 0,
 set RAM[0]  0,  // Set R0
