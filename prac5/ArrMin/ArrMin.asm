@@ -2,11 +2,6 @@
 // (R0, R1, R2 refer to RAM[0], RAM[1], and RAM[2], respectively.)
 
 // Put your code here.
-@R2
-D=M
-@END
-D;JLE
-
 @R1
 A=M
 D=M
@@ -19,14 +14,25 @@ M=M-1
 D=M
 @END
 D;JLE
-@R1
+@R1       
 AM=M+1
 D=M
+@temp
+M=D
 @R0
 D=D-M
 
 @LOOP
 D;JGT
+
+@temp
+D=M
+@NEG
+D;JLT
+
+(NEG)
+
+
 @R1
 A=M
 D=M
