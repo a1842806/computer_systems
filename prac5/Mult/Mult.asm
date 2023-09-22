@@ -9,6 +9,26 @@
 // Put your code here.
 @R0
 M=0
+@R1
+D=M
+@R2
+D=D-M
+@LOOP
+D;JGE
+
+(SWAP)
+@R1
+D=M
+@temp
+M=D
+@R2
+D=M
+@R1
+M=D
+@temp
+D=M
+@R2
+M=D
 
 (LOOP)
 @R2
