@@ -19,20 +19,34 @@ AM=M+1
 D=M
 @temp
 M=D
-@R0
-D=D-M
-
-@LOOP
-D;JGT
-
-@temp
-D=M
 @NEG
 D;JLT
 
+(POS)
+@R0
+D=M
+@LOOP
+D;JLT
+@CHECK
+0;JMP
+
 (NEG)
+@R0
+D=M
+@LOOP
+D;JGE
+@CHECK
+0;JMP
 
+(CHECK)
+@temp
+D=M
+@R0
+D=M-D
+@SWAP
+D;JGT
 
+(SWAP)
 @R1
 A=M
 D=M
