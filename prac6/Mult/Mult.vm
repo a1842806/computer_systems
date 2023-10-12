@@ -5,30 +5,17 @@
 // Put your code here.
 push constant 0
 pop local 0
-
 push static 0
-pop static 2
-
-push static 0
-push static 1
-gt
-if-goto SWAP
-goto LOOP
-
-label SWAP
-push static 1
-pop static 2
-push static 0
-pop static 1
+pop static 3
 
 label LOOP
 
-push static 2
+push static 0
 push constant 0
 eq
-if-goto END
+if-goto STOP
 
-push static 2
+push static 0
 push constant 0
 lt 
 if-goto NEG
@@ -38,10 +25,10 @@ push local 0
 add
 pop local 0
 
-push static 2
+push static 0
 push constant 1
 sub
-pop static 2
+pop static 0
 goto LOOP
 
 label NEG
@@ -50,12 +37,15 @@ push static 1
 sub
 pop local 0
 
-push static 2
+push static 0
 push constant 1
 add
-pop static 2
+pop static 0
 goto LOOP
 
+label STOP
+push static 3
+pop static 0
 
 label END
 goto END
