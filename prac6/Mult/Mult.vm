@@ -16,15 +16,16 @@ push constant 0
 eq
 if-goto END
 
+push static 2
+push constant 0
+lt 
+if-goto NEG
+
 push static 1
 push local 0
 add
 pop local 0
 
-push static 2
-push constant 0
-lt 
-if-goto NEG
 push static 2
 push constant 1
 sub
@@ -32,6 +33,11 @@ pop static 2
 goto LOOP
 
 label NEG
+push local 0
+push static 1
+sub
+pop local 0
+
 push static 2
 push constant 1
 add
