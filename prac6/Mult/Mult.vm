@@ -9,6 +9,18 @@ pop local 0
 push static 0
 pop static 2
 
+push static 0
+push static 1
+gt
+if-goto SWAP
+goto LOOP
+
+label SWAP
+push static 1
+pop static 2
+push static 0
+pop static 1
+
 label LOOP
 
 push static 2
