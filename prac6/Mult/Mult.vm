@@ -5,47 +5,42 @@
 // Put your code here.
 push constant 0
 pop local 0
-push static 0
-pop static 3
-
-label LOOP
 
 push static 0
 push constant 0
-eq
-if-goto STOP
-
-push static 0
-push constant 0
-lt 
+lt
 if-goto NEG
 
-push static 1
-push local 0
-add
-pop local 0
-
 push static 0
-push constant 1
-sub
-pop static 0
+pop static 3
+push static 1
+pop static 5
 goto LOOP
 
 label NEG
-push local 0
+push static 0
+neg
+pop static 3
 push static 1
-sub
+neg
+pop static 5
+
+label LOOP
+push static 3
+push constant 0
+eq
+if-goto END
+
+push static 5
+push local 0
+add
 pop local 0
 
-push static 0
-push constant 1
-add
-pop static 0
-goto LOOP
-
-label STOP
 push static 3
-pop static 0
+push constant 1
+sub
+pop static 3
+goto LOOP
 
 label END
 goto END
