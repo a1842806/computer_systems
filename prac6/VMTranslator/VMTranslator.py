@@ -175,7 +175,10 @@ class VMTranslator:
         hackAssemblyElementList.append('@SP')
         hackAssemblyElementList.append('M=M+1')
         # ARG = SP - 5 - number of arguments
+        hackAssemblyElementList.append('@SP')
         hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@5')
+        hackAssemblyElementList.append('D=D-A')
         hackAssemblyElementList.append("@" + str(5+n_args))
         hackAssemblyElementList.append('D=D-A')    
         hackAssemblyElementList.append('@ARG')
