@@ -695,9 +695,9 @@ def generateBootstrapCode(addComment):
 def writeHackAssemblyToFile(fileName, hackAssemblyList):
     outputFileName = fileName + '.asm'
 
-    with open(outputFileName, mode='w') as f:
-        for line in hackAssemblyList:
-            f.write(line + '\n')
+    
+    for line in hackAssemblyList:
+        print(line)
 
 def main():
     if len(sys.argv) == 2:
