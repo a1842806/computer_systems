@@ -164,70 +164,77 @@ class VMTranslator:
         return "\n".join(ss_ASM) + "\n"
 
     def vm_return():
-        asm_code = []
-        asm_code.append("@LCL // return")
-        asm_code.append("D=M")
-        asm_code.append("@R13")
-        asm_code.append("M=D")
+        hackAssemblyElementList = []
 
-        asm_code.append("@R13")
-        asm_code.append("D=M")
-        asm_code.append("@5")
-        asm_code.append("A=D-A")
-        asm_code.append("D=M")
-        asm_code.append("@R14")
-        asm_code.append("M=D")
-
-        asm_code.append("@SP")
-        asm_code.append("AM=M-1")
-        asm_code.append("D=M")
-        asm_code.append("@ARG")
-        asm_code.append("A=M")
-        asm_code.append("M=D")
-
-        asm_code.append("@ARG")
-        asm_code.append("D=M+1")
-        asm_code.append("@SP")
-        asm_code.append("M=D")
-
-        asm_code.append("@R13")
-        asm_code.append("D=M")
-        asm_code.append("@1")
-        asm_code.append("A=D-A")
-        asm_code.append("D=M")
-        asm_code.append("@THAT")
-        asm_code.append("M=D")
-
-        asm_code.append("@R13")
-        asm_code.append("D=M")
-        asm_code.append("@2")
-        asm_code.append("A=D-A")
-        asm_code.append("D=M")
-        asm_code.append("@THIS")
-        asm_code.append("M=D")
-
-        asm_code.append("@R13")
-        asm_code.append("D=M")
-        asm_code.append("@3")
-        asm_code.append("A=D-A")
-        asm_code.append("D=M")
-        asm_code.append("@ARG")
-        asm_code.append("M=D")
-
-        asm_code.append("@R13")
-        asm_code.append("D=M")
-        asm_code.append("@4")
-        asm_code.append("A=D-A")
-        asm_code.append("D=M")
-        asm_code.append("@LCL")
-        asm_code.append("M=D")
-
-        asm_code.append("@R14")
-        asm_code.append("A=M")
-        asm_code.append("0;JMP")
-
-        return '\n'.join(asm_code) + "\n"
-
+        # generate Hack assembly code
+        # endFrame = LCL // endFrame is a temporary variable
+        hackAssemblyElementList.append("@LCL")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("M=D")
+        # retAddr = *(endFrame - 5) // gets the return address
+        hackAssemblyElementList.append("@5")
+        hackAssemblyElementList.append('D=D-A')
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@return")
+        hackAssemblyElementList.append("M=D")
+        # *ARG = pop()  // repositions the return value for the caller
+        hackAssemblyElementList.append("@SP")
+        hackAssemblyElementList.append("M=M-1")
+        hackAssemblyElementList.append("A=M")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@ARG")
+        hackAssemblyElementList.append("A=M")
+        hackAssemblyElementList.append("M=D")
+        # SP = ARG + 1 // repositions SP of the caller
+        hackAssemblyElementList.append("@ARG")
+        hackAssemblyElementList.append("D=M+1")
+        hackAssemblyElementList.append("@SP")
+        hackAssemblyElementList.append("M=D")
+        # THAT = *(endFrame - 1) // restores THAT of the caller
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@1")
+        hackAssemblyElementList.append('D=D-A')
+        #hackAssemblyElementList.append('D=D-1')
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@THAT")
+        hackAssemblyElementList.append("M=D")
+        # THIS = *(endFrame - 2) // restores THIS of the caller
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@2")
+        hackAssemblyElementList.append('D=D-A')        
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@THIS")
+        hackAssemblyElementList.append("M=D")
+        # ARG = *(endFrame - 3) // restores ARG of the caller
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@3")
+        hackAssemblyElementList.append('D=D-A')            
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@ARG")
+        hackAssemblyElementList.append("M=D")
+        # LCL = *(endFrame - 4) // restores LCL of the caller
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@4")
+        hackAssemblyElementList.append('D=D-A')            
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@LCL")
+        hackAssemblyElementList.append("M=D")        
+        # goto retAddr // goes to return address in the caller's code
+        hackAssemblyElementList.append("@return")
+        hackAssemblyElementList.append("A=M")
+        hackAssemblyElementList.append("0;JMP")
+        result = '\n'.join(hackAssemblyElementList)
+        return result
 
 # A quick-and-dirty parser when run as a standalone script.
 if __name__ == "__main__":
