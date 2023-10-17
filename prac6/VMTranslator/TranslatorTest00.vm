@@ -1,12 +1,10 @@
 // A simple example VM Translator test case
-push constant 3
-push constant 4
-add
-pop this 0
-push this 0
-push constant 5
-add
-pop that 0
+push constant 2048
+pop static 0
+push static 0
+push static 0
+pop static 1
+pop static 2
 
 
 // A simple infinite loop  

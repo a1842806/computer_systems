@@ -11,7 +11,10 @@ class VMTranslator:
             elif segment == "that": seg_base_addr = "THAT"
             elif segment == "temp": seg_base_addr = "R5"
             elif segment == "pointer": seg_base_addr = "R3"
-            elif segment == "static": seg_base_addr = "R16"
+            elif segment == "static": 
+                asm_code = "@" + str(offset + 16) + "\n" + "D=M\n"
+                asm_code += "@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+                return asm_code
 
             asm_code += "@" + seg_base_addr + "\n" + "A=M+D\n" + "D=M\n"
 
