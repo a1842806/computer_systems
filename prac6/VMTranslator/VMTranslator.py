@@ -200,7 +200,7 @@ class VMTranslator:
         # endFrame = LCL // endFrame is a temporary variable
         hackAssemblyElementList.append("@LCL")
         hackAssemblyElementList.append("D=M")
-        hackAssemblyElementList.append("@R13")
+        hackAssemblyElementList.append("@frame")
         hackAssemblyElementList.append("M=D")
         # retAddr = *(endFrame - 5) // gets the return address
         hackAssemblyElementList.append("@5")
@@ -311,5 +311,3 @@ if __name__ == "__main__":
                         print(VMTranslator.vm_function(tokens[1],int(tokens[2])))
                     elif(tokens[0]=='call'):
                         print(VMTranslator.vm_call(tokens[1],int(tokens[2])))
-
-        
