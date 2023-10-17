@@ -1,10 +1,8 @@
 // A simple example VM Translator test case
 push constant 2048
+push constant 2048
+eq
 pop static 0
-push static 0
-push static 0
-pop static 1
-pop static 2
 
 
 // A simple infinite loop  

@@ -56,60 +56,94 @@ class VMTranslator:
         return asm_code
 
     def vm_sub():
-        '''Generate Hack Assembly code for a VM sub operation'''
-        return ""
+        asm_code = "@SP\nAM=M-1\nD=M\nA=A-1\nM=M-D\n"
+        return asm_code
 
     def vm_neg():
-        '''Generate Hack Assembly code for a VM neg operation'''
-        return ""
+        asm_code = "@SP\nA=M-1\nM=-M\n"
+        return asm_code
 
     def vm_eq():
-        '''Generate Hack Assembly code for a VM eq operation'''
-        return ""
+        asm_code = f"@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n"  
+        asm_code += f"@EQ\nD;JEQ\n"  
+        asm_code += f"@SP\nA=M-1\nM=0\n"  
+        asm_code += f"@EQ_END\n0;JMP\n"
+        asm_code += f"(EQ)\n@SP\nA=M-1\nM=-1\n"  
+        asm_code += f"(EQ_END)\n"
+        return asm_code
 
     def vm_gt():
-        '''Generate Hack Assembly code for a VM gt operation'''
+        asm_code = f"@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n"  
+        asm_code += f"@GT\nD;JGT\n"  
+        asm_code += f"@SP\nA=M-1\nM=0\n"  
+        asm_code += f"@GT_END\n0;JMP\n"
+        asm_code += f"(GT)\n@SP\nA=M-1\nM=-1\n"  
+        asm_code += f"(GT_END)\n"
         return ""
 
     def vm_lt():
-        '''Generate Hack Assembly code for a VM lt operation'''
+        asm_code = f"@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n"  
+        asm_code += f"@LT\nD;JLT\n"  
+        asm_code += f"@SP\nA=M-1\nM=0\n"  
+        asm_code += f"@LT_END\n0;JMP\n"
+        asm_code += f"(LT)\n@SP\nA=M-1\nM=-1\n"  
+        asm_code += f"(LT_END)\n"
         return ""
 
     def vm_and():
-        '''Generate Hack Assembly code for a VM and operation'''
-        return ""
+        asm_code = "@SP\nAM=M-1\nD=M\nA=A-1\nM=M&D\n"
+        return asm_code
 
     def vm_or():
-        '''Generate Hack Assembly code for a VM or operation'''
-        return ""
+        asm_code = "@SP\nAM=M-1\nD=M\nA=A-1\nM=M|D\n"
+        return asm_code
 
     def vm_not():
-        '''Generate Hack Assembly code for a VM not operation'''
-        return ""
+        asm_code = "@SP\nAM=M-1\nM=!M\n"
+        return asm_code
 
     def vm_label(label):
-        '''Generate Hack Assembly code for a VM label operation'''
-        return ""
+        asm_code = f"({label})\n"
+        return asm_code
 
     def vm_goto(label):
-        '''Generate Hack Assembly code for a VM goto operation'''
-        return ""
+        asm_code = f"@{label}\n0;JMP\n"
+        return asm_code
 
     def vm_if(label):
-        '''Generate Hack Assembly code for a VM if-goto operation'''
-        return ""
+        asm_code = "@SP\nAM=M-1\nD=M\n"
+        asm_code += f"@{label}\nD;JNE\n"
+        return asm_code
 
     def vm_function(function_name, n_vars):
-        '''Generate Hack Assembly code for a VM function operation'''
-        return ""
+        asm_code = f"({function_name})\n"
+        for i in range(n_vars):
+            asm_code += VMTranslator.vm_push("constant", 0)
+        return asm_code
 
     def vm_call(function_name, n_args):
-        '''Generate Hack Assembly code for a VM call operation'''
-        return ""
+        asm_code = f"@RETURN_{function_name}_{n_args}\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        asm_code += VMTranslator.vm_push("local", 0)
+        asm_code += VMTranslator.vm_push("argument", 0)
+        asm_code += VMTranslator.vm_push("this", 0)
+        asm_code += VMTranslator.vm_push("that", 0)
+        asm_code += f"@SP\nD=M\n@5\nD=D-A\n@{n_args}\nD=D-A\n@ARG\nM=D\n"
+        asm_code += f"@SP\nD=M\n@LCL\nM=D\n"
+        asm_code += f"@{function_name}\n0;JMP\n"
+        asm_code += f"(RETURN_{function_name}_{n_args})\n"
+        return asm_code
 
     def vm_return():
-        '''Generate Hack Assembly code for a VM return operation'''
-        return ""
+        asm_code = f"@LCL\nD=M\n@R13\nM=D\n"
+        asm_code += f"@5\nA=D-A\nD=M\n@R14\nM=D\n"
+        asm_code += f"@SP\nAM=M-1\nD=M\n@ARG\nA=M\nM=D\n"
+        asm_code += f"@ARG\nD=M+1\n@SP\nM=D\n"
+        asm_code += f"@R13\nAM=M-1\nD=M\n@THAT\nM=D\n"
+        asm_code += f"@R13\nAM=M-1\nD=M\n@THIS\nM=D\n"
+        asm_code += f"@R13\nAM=M-1\nD=M\n@ARG\nM=D\n"
+        asm_code += f"@R13\nAM=M-1\nD=M\n@LCL\nM=D\n"
+        asm_code += f"@R14\nA=M\n0;JMP\n"
+        return asm_code
 
 # A quick-and-dirty parser when run as a standalone script.
 if __name__ == "__main__":
