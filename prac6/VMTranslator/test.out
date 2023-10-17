@@ -1,2 +1,2 @@
-|   sp   | local  | argument |  this  |  that  |RAM[16] |RAM[17] |RAM[18] | local[0] | local[1] | local[2] | argument[0] | argument[1] | argument[2] |
-|   sp   | local  | argument |  this  |  that  |RAM[16] |RAM[17] |RAM[18] | local[0] | local[1] | local[2] | argument[0] | argument[1] | argument[2] |
+|   RAM[0]    |   RAM[1]    |   RAM[2]    |   RAM[3]    |   RAM[4]    |  RAM[256]   |  RAM[257]   |  RAM[258]   |  RAM[300]   |  RAM[301]   |  RAM[400]   |  RAM[401]   |  RAM[3000]  |  RAM[3001]  |  RAM[3010]  |  RAM[3011]  |
+|         256 |         300 |         400 |        3000 |        3010 |          12 |           5 |           0 |           0 |           0 |           0 |           0 |           7 |           0 |          12 |           0 |
