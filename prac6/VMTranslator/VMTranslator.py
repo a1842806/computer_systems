@@ -144,14 +144,14 @@ class VMTranslator:
 
     def vm_return():
         asm_code = "@LCL\nD=M\n@R13\nM=D\n"  # FRAME = LCL
-        asm_code += "@5\nA=D-A\nD=M\n@R14\nM=D\n"  # RET = *(FRAME - 5)
+        asm_code += "@R13\nD=M\n@5\nA=D-A\nD=M\n@R14\nM=D\n"  # RET = *(FRAME - 5)
         # Reposition the return value for the caller
         asm_code += "@SP\nAM=M-1\nD=M\n@ARG\nA=M\nM=D\n"
         asm_code += "@ARG\nD=M+1\n@SP\nM=D\n"  # Restore SP of the caller
-        asm_code += "@R13\nAM=M-1\nD=M\n@THAT\nM=D\n"  # Restore THAT
-        asm_code += "@R13\nAM=M-1\nD=M\n@THIS\nM=D\n"  # Restore THIS
-        asm_code += "@R13\nAM=M-1\nD=M\n@ARG\nM=D\n"  # Restore ARG
-        asm_code += "@R13\nAM=M-1\nD=M\n@LCL\nM=D\n"  # Restore LCL
+        asm_code += "@R13\nD=M\n@1\nA=D-A\nD=M\n@THAT\nM=D\n"  # Restore THAT
+        asm_code += "@R13\nD=M\n@2\nA=D-A\nD=M\n@THIS\nM=D\n"   # Restore THIS
+        asm_code += "@R13\nD=M\n@3\nA=D-A\nD=M\n@ARG\nM=D\n"   # Restore ARG
+        asm_code += "@R13\nD=M\n@4\nA=D-A\nD=M\n@LCL\nM=D\n"   # Restore LCL
         asm_code += "@R14\nA=M\n0;JMP\n"  # Return to the caller
         return asm_code
 
