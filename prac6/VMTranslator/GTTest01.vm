@@ -1,0 +1,6 @@
+push constant 35
+push constant 12
+gt
+push constant 0
+push constant 62
+gt

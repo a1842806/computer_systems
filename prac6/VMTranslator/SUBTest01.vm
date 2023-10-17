@@ -1,0 +1,8 @@
+push constant 15
+push constant 60
+sub
+pop this 0
+push constant 30
+push this 0
+sub
+pop that 0

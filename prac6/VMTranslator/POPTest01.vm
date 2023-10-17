@@ -1,0 +1,6 @@
+push constant 1
+pop static 0
+push constant 2
+pop argument 0
+push static 0
+pop local 0

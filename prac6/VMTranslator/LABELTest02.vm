@@ -1,0 +1,14 @@
+push constant 1
+
+pop static 0
+label A 
+push static 0
+push constant 1
+add
+pop static 0
+
+label B
+push static 0
+push constant 1
+sub
+pop static 0
