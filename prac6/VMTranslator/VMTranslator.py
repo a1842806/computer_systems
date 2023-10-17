@@ -1,199 +1,407 @@
-class VMTranslator:
+# VMTranslator translates VM code(compiled from Jack programming language using Jack compiler)
+# into Hack assembly
 
-    def vm_push(segment, offset):
-        asm_code = "@" + str(offset) + "\n" + "D=A\n"
+import sys
+import os
 
-        if segment != "constant":
-            seg_base_addr = ""
-            if segment == "local": seg_base_addr = "LCL"
-            elif segment == "argument": seg_base_addr = "ARG"
-            elif segment == "this": seg_base_addr = "THIS"
-            elif segment == "that": seg_base_addr = "THAT"
-            elif segment == "temp": seg_base_addr = "R5"
-            elif segment == "pointer": seg_base_addr = "R3"
-            elif segment == "static": 
-                asm_code = "@" + str(offset + 16) + "\n" + "D=M\n"
-                asm_code += "@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-                return asm_code
+# read vm code file and parse content into a list
+def parseVMCodeFile(file):
+    vmCodeList = []
 
-            asm_code += "@" + seg_base_addr + "\n" + "A=M+D\n" + "D=M\n"
+    with open(file, mode='r') as f:
+        lines = f.read().splitlines()
+        for line in lines:
+            if not line: # ignore empty lines
+                continue
+            elif line[0:2] == '//': # ignore lines with comment comes first
+                continue
+            else:
+                if '//' in line:
+                    line = line.split('//')[0]
+                    vmCodeList.append(line.strip()) # ignore comments inside a line
+                else:
+                    vmCodeList.append(line.strip())
+    
+    return vmCodeList
 
-        asm_code += "@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-
-        return asm_code
-
-    def vm_pop(segment, offset):
-        asm_code = ""
-        
-        seg_base_addr = ""
-        if segment == "local": seg_base_addr = "LCL"
-        elif segment == "argument": seg_base_addr = "ARG"
-        elif segment == "this": seg_base_addr = "THIS"
-        elif segment == "that": seg_base_addr = "THAT"
-        elif segment == "temp": seg_base_addr = "R5"
-        elif segment == "pointer": seg_base_addr = "R3"
-        elif segment == "static": 
-            seg_base_addr = "R16"
-            asm_code += "@SP\nAM=M-1\nD=M\n"
-            asm_code += "@" + str(offset + 16) + "\nM=D\n"
-            return asm_code
-        
-        # Calculate the target address
-        asm_code += "@" + str(offset) + "\nD=A\n"
-        asm_code += "@" + seg_base_addr + "\nA=M+D\nD=A\n"
-        asm_code += "@R13\nM=D\n"
-
-        # Pop from stack into D
-        asm_code += "@SP\nAM=M-1\nD=M\n"
-
-        # Store D into the target address
-        asm_code += "@R13\nA=M\nM=D\n"
-
-        return asm_code
-
-    def vm_add():
-        asm_code = "@SP\nAM=M-1\nD=M\nA=A-1\nM=M+D\n"
-        return asm_code
-
-    def vm_sub():
-        asm_code = "@SP\nAM=M-1\nD=M\nA=A-1\nM=M-D\n"
-        return asm_code
-
-    def vm_neg():
-        asm_code = "@SP\nA=M-1\nM=-M\n"
-        return asm_code
-
-    def vm_eq():
-        asm_code = f"@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n"  
-        asm_code += f"@EQ\nD;JEQ\n"  
-        asm_code += f"@SP\nA=M-1\nM=0\n"  
-        asm_code += f"@EQ_END\n0;JMP\n"
-        asm_code += f"(EQ)\n@SP\nA=M-1\nM=-1\n"  
-        asm_code += f"(EQ_END)\n"
-        return asm_code
-
-    def vm_gt():
-        asm_code = f"@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n"  
-        asm_code += f"@GT\nD;JGT\n"  
-        asm_code += f"@SP\nA=M-1\nM=0\n"  
-        asm_code += f"@GT_END\n0;JMP\n"
-        asm_code += f"(GT)\n@SP\nA=M-1\nM=-1\n"  
-        asm_code += f"(GT_END)\n"
-        return ""
-
-    def vm_lt():
-        asm_code = f"@SP\nAM=M-1\nD=M\nA=A-1\nD=M-D\n"  
-        asm_code += f"@LT\nD;JLT\n"  
-        asm_code += f"@SP\nA=M-1\nM=0\n"  
-        asm_code += f"@LT_END\n0;JMP\n"
-        asm_code += f"(LT)\n@SP\nA=M-1\nM=-1\n"  
-        asm_code += f"(LT_END)\n"
-        return ""
-
-    def vm_and():
-        asm_code = "@SP\nAM=M-1\nD=M\nA=A-1\nM=M&D\n"
-        return asm_code
-
-    def vm_or():
-        asm_code = "@SP\nAM=M-1\nD=M\nA=A-1\nM=M|D\n"
-        return asm_code
-
-    def vm_not():
-        asm_code = "@SP\nAM=M-1\nM=!M\n"
-        return asm_code
-
-    def vm_label(label):
-        asm_code = f"({label})\n"
-        return asm_code
-
-    def vm_goto(label):
-        asm_code = f"@{label}\n0;JMP\n"
-        return asm_code
-
-    def vm_if(label):
-        asm_code = "@SP\nAM=M-1\nD=M\n"
-        asm_code += f"@{label}\nD;JNE\n"
-        return asm_code
-
-    def vm_function(function_name, n_vars):
+# main algorithm for generating Hack assembly program into a list
+def generateHackAssembly(vmCodeList, fileName, addComment, translationHelperData):
+    # transfer VM add command into Hack assembly code
+    def transferAdd():
         hackAssemblyElementList = []
 
         # generate Hack assembly code
-        hackAssemblyElementList.append("(" + function_name +")")
-        for _ in range(n_vars):
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D+M')         
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+    
+    # transfer VM sub command into Hack assembly code
+    def trasferSub():
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=M-D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM neg command into Hack assembly code
+    def transferNeg():
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=-M')            
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM eq command into Hack assembly code
+    def transferEq(customLabelIndex):
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=D-M')
+        hackAssemblyElementList.append('@EQUAL'+ customLabelIndex)
+        hackAssemblyElementList.append('D;JEQ')
+        hackAssemblyElementList.append('D=0')
+        hackAssemblyElementList.append('@FINAL'+ customLabelIndex)
+        hackAssemblyElementList.append('0;JEQ')
+        hackAssemblyElementList.append('(EQUAL'+ customLabelIndex +')')
+        hackAssemblyElementList.append('D=-1')
+        hackAssemblyElementList.append('(FINAL'+ customLabelIndex +')')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM gt command into Hack assembly code
+    def transferGt(customLabelIndex):
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M-D')
+        hackAssemblyElementList.append('@GREATER_THAN'+ customLabelIndex)
+        hackAssemblyElementList.append('D;JGT')
+        hackAssemblyElementList.append('D=0')
+        hackAssemblyElementList.append('@END'+ customLabelIndex)
+        hackAssemblyElementList.append('0;JEQ')
+        hackAssemblyElementList.append('(GREATER_THAN'+ customLabelIndex +')')
+        hackAssemblyElementList.append('D=-1')
+        hackAssemblyElementList.append('(END'+ customLabelIndex +')')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')        
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM lt command into Hack assembly code
+    def transferLt(customLabelIndex):
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M-D')
+        hackAssemblyElementList.append('@LESS_THAN'+ customLabelIndex)
+        hackAssemblyElementList.append('D;JLT')
+        hackAssemblyElementList.append('D=0')
+        hackAssemblyElementList.append('@END'+ customLabelIndex)
+        hackAssemblyElementList.append('0;JEQ')
+        hackAssemblyElementList.append('(LESS_THAN'+ customLabelIndex +')')
+        hackAssemblyElementList.append('D=-1')
+        hackAssemblyElementList.append('(END'+ customLabelIndex +')')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')        
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM and command into Hack assembly code
+    def transferAnd():
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=D&M')       
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM or command into Hack assembly code
+    def transferOr():
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=D|M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM not command into Hack assembly code
+    def transferNot():
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=!M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM push command into Hack assembly code
+    def transferPush(memorySegmentDict, memorySegmentAccess, fileName, offset):
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        if 'constant' in parsedCode:
+            # *SP = i, SP++
+            hackAssemblyElementList.append('@' + offset)
+            hackAssemblyElementList.append('D=A')
             hackAssemblyElementList.append('@SP')
-            hackAssemblyElementList.append('AM=M+1')
-            hackAssemblyElementList.append('A=A-1')
-            hackAssemblyElementList.append('M=0')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('M=D')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M+1')            
+        elif memorySegmentAccess in memorySegmentDict.keys():
+            # addr = segmentPointer + i, *SP = *addr, SP++
+            hackAssemblyElementList.append('@' + offset)
+            hackAssemblyElementList.append('D=A')
+            hackAssemblyElementList.append('@' + memorySegmentDict[memorySegmentAccess])
+            hackAssemblyElementList.append('A=D+M')
+            hackAssemblyElementList.append('D=M')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('M=D')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M+1')
+        elif 'temp' in parsedCode:
+            # addr = 5 + i, *SP = *addr, SP++
+            hackAssemblyElementList.append('@' + offset)
+            hackAssemblyElementList.append('D=A')
+            hackAssemblyElementList.append('@5')
+            hackAssemblyElementList.append('A=D+A')
+            hackAssemblyElementList.append('D=M')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('M=D')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M+1')
+        elif 'pointer' in parsedCode:
+            # *SP = THIS/THAT, SP++
+            if offset == '0':
+                accessor = 'THIS'
+            else:
+                accessor = 'THAT'
+            
+            hackAssemblyElementList.append('@' + accessor)
+            hackAssemblyElementList.append('D=M')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('M=D')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M+1')
+        elif 'static' in parsedCode:
+            hackAssemblyElementList.append('@' + fileName + '.' + offset)
+            hackAssemblyElementList.append('D=M')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('M=D')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M+1')            
+    
+        return hackAssemblyElementList
 
-        result = '\n'.join(hackAssemblyElementList)
-        return result
-
-
-    def vm_call(function_name, n_args):
+    # transfer VM pop command into Hack assembly code
+    def transferPop(memorySegmentDict, memorySegmentAccess, fileName, offset):
         hackAssemblyElementList = []
 
         # generate Hack assembly code
-        # push return address
-        hackAssemblyElementList.append('@'+ function_name)
-        hackAssemblyElementList.append('D=A')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('A=M')
-        hackAssemblyElementList.append('M=D')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('M=M+1') 
-        # push LCL
-        hackAssemblyElementList.append('@LCL')
-        hackAssemblyElementList.append('D=M')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('A=M')
-        hackAssemblyElementList.append('M=D')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('M=M+1')
-        # push ARG
-        hackAssemblyElementList.append('@ARG')
-        hackAssemblyElementList.append('D=M')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('A=M')
-        hackAssemblyElementList.append('M=D')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('M=M+1')
-        # push THIS
-        hackAssemblyElementList.append('@THIS')
-        hackAssemblyElementList.append('D=M')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('A=M')
-        hackAssemblyElementList.append('M=D')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('M=M+1') 
-        # push THAT
-        hackAssemblyElementList.append('@THAT')
-        hackAssemblyElementList.append('D=M')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('A=M')
-        hackAssemblyElementList.append('M=D')
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('M=M+1')
-        # ARG = SP - 5 - number of arguments
-        hackAssemblyElementList.append('D=M')
-        hackAssemblyElementList.append("@" + str(5+n_args))
-        hackAssemblyElementList.append('D=D-A')    
-        hackAssemblyElementList.append('@ARG')
-        hackAssemblyElementList.append('M=D')
-        # LCL = SP
-        hackAssemblyElementList.append('@SP')
-        hackAssemblyElementList.append('D=M')
-        hackAssemblyElementList.append('@LCL')
-        hackAssemblyElementList.append('M=D')
-        # goto function_name
-        hackAssemblyElementList.append('@' + function_name)
-        hackAssemblyElementList.append('0;JMP')
-        # (return address)
-        hackAssemblyElementList.append('('+ function_name + ')')
-        result = '\n'.join(hackAssemblyElementList)
-        return result
+        if memorySegmentAccess in memorySegmentDict.keys():
+            # addr = segmentPointer + i, SP--, *addr = *SP
+            hackAssemblyElementList.append('@' + offset)
+            hackAssemblyElementList.append('D=A')
+            hackAssemblyElementList.append('@' + memorySegmentDict[memorySegmentAccess])
+            hackAssemblyElementList.append('D=D+M')
+            hackAssemblyElementList.append('@frame')
+            hackAssemblyElementList.append('M=D')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M-1')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('D=M')
+            hackAssemblyElementList.append('@frame')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('M=D')
+        elif 'temp' in parsedCode:
+            # addr = 5 + i, SP--, *addr = *SP
+            hackAssemblyElementList.append('@' + offset)
+            hackAssemblyElementList.append('D=A')
+            hackAssemblyElementList.append('@5')
+            hackAssemblyElementList.append('D=D+A')
+            hackAssemblyElementList.append('@frame')
+            hackAssemblyElementList.append('M=D')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M-1')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('D=M')
+            hackAssemblyElementList.append('@frame')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('M=D')
+        elif 'pointer' in parsedCode:
+            # SP--, THIS/THAT = *SP
+            if offset == '0':
+                accessor = 'THIS'
+            else:
+                accessor = 'THAT'
+            
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M-1')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('D=M')
+            hackAssemblyElementList.append('@' + accessor)
+            hackAssemblyElementList.append('M=D')
+        elif 'static' in parsedCode:
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M-1')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('D=M')
+            hackAssemblyElementList.append('@' + fileName + '.' + offset)
+            hackAssemblyElementList.append('M=D')
+    
+        return hackAssemblyElementList
 
-    def vm_return():
+    # transfer VM label command into Hack assembly code
+    def transferLabel(labelName, functionList):
+        hackAssemblyElementList = []            
+
+        # generate Hack assembly code
+        if len(functionList) > 0:
+            functionName = functionList[-1]
+            hackAssemblyElementList.append('(' + functionName + '$' + labelName + ')')
+        else:
+            hackAssemblyElementList.append('('+ labelName + ')')
+        
+        return hackAssemblyElementList
+
+    # transfer VM if-goto command into Hack assembly code
+    def transferIfGoto(labelName, functionList):
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M-1')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('D=M')
+        if len(functionList) > 0:
+            functionName = functionList[-1]
+            hackAssemblyElementList.append('@' + functionName + '$' + labelName)
+        else:
+            hackAssemblyElementList.append("@" + labelName)
+        hackAssemblyElementList.append("D;JNE")
+
+        return hackAssemblyElementList
+
+    # transfer VM goto command into Hack assembly code
+    def transferGoto(code, functionList):
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        if len(functionList) > 0:
+            functionName = functionList[-1]
+            hackAssemblyElementList.append('@' + functionName + '$' + labelName)
+        else:
+            hackAssemblyElementList.append("@" + labelName)
+        hackAssemblyElementList.append("0;JMP")
+
+        return hackAssemblyElementList
+
+    # transfer VM function command into Hack assembly code
+    def transferFunction(functionName, numberOfVariables):
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        hackAssemblyElementList.append("(" + functionName +")")
+        for _ in range(numberOfVariables):
+            hackAssemblyElementList.append('@0')
+            hackAssemblyElementList.append('D=A')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('A=M')
+            hackAssemblyElementList.append('M=D')
+            hackAssemblyElementList.append('@SP')
+            hackAssemblyElementList.append('M=M+1')
+
+        return hackAssemblyElementList
+
+    # transfer VM return command into Hack assembly code
+    def transferReturn():
         hackAssemblyElementList = []
 
         # generate Hack assembly code
@@ -263,51 +471,273 @@ class VMTranslator:
         hackAssemblyElementList.append("@return")
         hackAssemblyElementList.append("A=M")
         hackAssemblyElementList.append("0;JMP")
-        result = '\n'.join(hackAssemblyElementList)
-        return result
 
-# A quick-and-dirty parser when run as a standalone script.
+        return hackAssemblyElementList
+
+    # transfer VM call command into Hack assembly code
+    def transferCall(functionName, numberOfArguments, functionLabelIndex):
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        # push return address
+        hackAssemblyElementList.append('@'+ functionName + '$ret.' + functionLabelIndex)
+        hackAssemblyElementList.append('D=A')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1') 
+        # push LCL
+        hackAssemblyElementList.append('@LCL')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+        # push ARG
+        hackAssemblyElementList.append('@ARG')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+        # push THIS
+        hackAssemblyElementList.append('@THIS')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1') 
+        # push THAT
+        hackAssemblyElementList.append('@THAT')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+        # ARG = SP - 5 - number of arguments
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append("@" + str(5+numberOfArguments))
+        hackAssemblyElementList.append('D=D-A')    
+        hackAssemblyElementList.append('@ARG')
+        hackAssemblyElementList.append('M=D')
+        # LCL = SP
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@LCL')
+        hackAssemblyElementList.append('M=D')
+        # goto functionName
+        hackAssemblyElementList.append('@' + functionName)
+        hackAssemblyElementList.append('0;JMP')
+        # (return address)
+        hackAssemblyElementList.append('('+ functionName +'$ret.' + functionLabelIndex + ')')
+
+        return hackAssemblyElementList
+
+    hackAssemblyList = []
+    memorySegmentDict = {"local": "LCL", "argument": "ARG", "this": "THIS", "that": "THAT"}
+
+    for code in vmCodeList:
+        VMCommand = code.split(' ')[0]
+        hackAssemblyElementList = ['//' + code] if addComment else []
+
+        if 'add' == VMCommand:
+            hackAssemblyElementList += transferAdd()
+        elif 'sub' == VMCommand:
+            hackAssemblyElementList += trasferSub()
+        elif 'neg' == VMCommand:
+            hackAssemblyElementList += transferNeg()
+        elif 'eq' == VMCommand:
+            hackAssemblyElementList += transferEq(str(translationHelperData["customLabelIndex"]))
+            translationHelperData["customLabelIndex"] += 1
+        elif 'gt' == VMCommand:
+            hackAssemblyElementList += transferGt(str(translationHelperData["customLabelIndex"]))
+            translationHelperData["customLabelIndex"] += 1
+        elif 'lt' == VMCommand:
+            hackAssemblyElementList += transferLt(str(translationHelperData["customLabelIndex"]))
+            translationHelperData["customLabelIndex"] += 1
+        elif 'and' == VMCommand:
+            hackAssemblyElementList += transferAnd()
+        elif 'or' == VMCommand:
+            hackAssemblyElementList += transferOr()
+        elif 'not' == VMCommand:
+            hackAssemblyElementList += transferNot()
+        elif 'push' == VMCommand:
+            parsedCode = code.split(" ")
+            memorySegmentAccess = parsedCode[1]
+            offset = str(parsedCode[-1])
+
+            hackAssemblyElementList += transferPush(memorySegmentDict, memorySegmentAccess, fileName, offset)
+        elif 'pop' == VMCommand:
+            parsedCode = code.split(" ")
+            memorySegmentAccess = parsedCode[1]
+            offset = str(parsedCode[-1])
+
+            hackAssemblyElementList += transferPop(memorySegmentDict, memorySegmentAccess, fileName, offset)
+        elif 'label' == VMCommand:
+            parsedCode = code.split(" ")
+            labelName = parsedCode[-1]
+
+            hackAssemblyElementList += transferLabel(labelName, translationHelperData["functionList"])
+        elif 'if-goto' == VMCommand:
+            parsedCode = code.split(" ")
+            labelName = parsedCode[-1]
+
+            hackAssemblyElementList += transferIfGoto(labelName, translationHelperData["functionList"])
+        elif 'goto' == VMCommand:
+            parsedCode = code.split(" ")
+            labelName = parsedCode[-1]
+
+            hackAssemblyElementList += transferGoto(labelName, translationHelperData["functionList"])
+        elif 'function' == VMCommand:
+            parsedCode = code.split(" ")
+            functionName = parsedCode[1]
+            translationHelperData["functionList"].append(functionName)
+            numberOfVariables = int(parsedCode[-1])
+
+            hackAssemblyElementList += transferFunction(functionName, numberOfVariables)
+        elif 'return' == VMCommand:
+            hackAssemblyElementList += transferReturn()
+        elif 'call' == VMCommand:
+            parsedCode = code.split(' ')
+            functionName = parsedCode[1]
+            numberOfArguments = int(parsedCode[-1])
+
+            hackAssemblyElementList += transferCall(functionName, numberOfArguments, str(translationHelperData["functionLabelIndex"]))
+            translationHelperData["functionLabelIndex"] += 1
+        
+        hackAssemblyList += hackAssemblyElementList
+
+    if len(translationHelperData["functionList"]) > 0:
+        translationHelperData["functionList"].pop()
+
+    return hackAssemblyList
+                    
+# booting code for Hack computer
+def generateBootstrapCode(addComment):
+    hackAssemblyElementList = []
+
+    # SP=256
+    if addComment:
+        hackAssemblyElementList.append('//SP=256')
+    hackAssemblyElementList.append('@256')
+    hackAssemblyElementList.append('D=A')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('M=D')
+    # call Sys.init
+    if addComment:
+        hackAssemblyElementList.append('//call Sys.init 0')
+    # push return address
+    hackAssemblyElementList.append('@Bootstrap$ret')
+    hackAssemblyElementList.append('D=A')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('A=M')
+    hackAssemblyElementList.append('M=D')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('M=M+1') 
+    # push LCL
+    hackAssemblyElementList.append('@LCL')
+    hackAssemblyElementList.append('D=M')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('A=M')
+    hackAssemblyElementList.append('M=D')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('M=M+1')
+    # push ARG
+    hackAssemblyElementList.append('@ARG')
+    hackAssemblyElementList.append('D=M')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('A=M')
+    hackAssemblyElementList.append('M=D')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('M=M+1')
+    # push THIS
+    hackAssemblyElementList.append('@THIS')
+    hackAssemblyElementList.append('D=M')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('A=M')
+    hackAssemblyElementList.append('M=D')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('M=M+1') 
+    # push THAT
+    hackAssemblyElementList.append('@THAT')
+    hackAssemblyElementList.append('D=M')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('A=M')
+    hackAssemblyElementList.append('M=D')
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('M=M+1')
+    # ARG = SP - 5
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('D=M')
+    hackAssemblyElementList.append('@5')
+    hackAssemblyElementList.append('D=D-A')
+    hackAssemblyElementList.append('@ARG')
+    hackAssemblyElementList.append('M=D')
+    # LCL = SP
+    hackAssemblyElementList.append('@SP')
+    hackAssemblyElementList.append('D=M')
+    hackAssemblyElementList.append('@LCL')
+    hackAssemblyElementList.append('M=D')
+    # goto functionName
+    hackAssemblyElementList.append('@Sys.init')
+    hackAssemblyElementList.append('0;JMP')
+    # (return address)
+    hackAssemblyElementList.append('(Bootstrap' +'$ret)')    
+
+    return hackAssemblyElementList
+
+# write hack assembly program into a file
+def writeHackAssemblyToFile(fileName, hackAssemblyList):
+    outputFileName = fileName + '.asm'
+
+    with open(outputFileName, mode='w') as f:
+        for line in hackAssemblyList:
+            f.write(line + '\n')
+
+def main():
+    if len(sys.argv) == 2:
+        addComment = True
+        translationHelperData = {
+            "customLabelIndex": 0,
+            "functionLabelIndex": 0,
+            "functionList": []
+        }
+
+        if sys.argv[1].endswith(".vm"):
+            # read vm code file and parse content into a list
+            vmCodeFile = sys.argv[1]
+            fileName = vmCodeFile.split('/')[-1].split('.')[0]
+            vmCodeList = parseVMCodeFile(vmCodeFile)
+
+            # main algorithm for generating Hack assembly program into a list
+            hackAssemblyList = generateHackAssembly(vmCodeList, fileName, addComment, translationHelperData)
+        else:
+            # read each vm code file in a directory
+            vmCodeDirectory = sys.argv[1]
+            hackAssemblyList =  generateBootstrapCode(addComment)
+            
+            for fileName in os.listdir(vmCodeDirectory):
+                if fileName.endswith(".vm"):
+                    vmCodeList = parseVMCodeFile(vmCodeDirectory + '/' + fileName)
+                    fileName = fileName.split('.')[0]
+
+                    # main algorithm for generating Hack assembly program into a list
+                    hackAssemblyList += generateHackAssembly(vmCodeList, fileName, addComment, translationHelperData)
+
+        # write hack assembly program into a file
+        if sys.argv[1].endswith(".vm"):
+            destinationFileName = sys.argv[1].split(".")[0]
+        else:
+            destinationDirectory = sys.argv[1]
+            destinationFileName = destinationDirectory + '/' + destinationDirectory.split('/')[-1] # destination directory as file name
+        writeHackAssemblyToFile(destinationFileName, hackAssemblyList)
+    else:
+        print("Usage: python VMTranslator.py [VMCodeFile].vm or python VMTranslator.py [VMDirectory]")
+
 if __name__ == "__main__":
-    import sys
-
-    if(len(sys.argv) > 1):
-        with open(sys.argv[1], "r") as a_file:
-            for line in a_file:
-                tokens = line.strip().lower().split()
-                if(len(tokens)==1):
-                    if(tokens[0]=='add'):
-                        print(VMTranslator.vm_add())
-                    elif(tokens[0]=='sub'):
-                        print(VMTranslator.vm_sub())
-                    elif(tokens[0]=='neg'):
-                        print(VMTranslator.vm_neg())
-                    elif(tokens[0]=='eq'):
-                        print(VMTranslator.vm_eq())
-                    elif(tokens[0]=='gt'):
-                        print(VMTranslator.vm_gt())
-                    elif(tokens[0]=='lt'):
-                        print(VMTranslator.vm_lt())
-                    elif(tokens[0]=='and'):
-                        print(VMTranslator.vm_and())
-                    elif(tokens[0]=='or'):
-                        print(VMTranslator.vm_or())
-                    elif(tokens[0]=='not'):
-                        print(VMTranslator.vm_not())
-                    elif(tokens[0]=='return'):
-                        print(VMTranslator.vm_return())
-                elif(len(tokens)==2):
-                    if(tokens[0]=='label'):
-                        print(VMTranslator.vm_label(tokens[1]))
-                    elif(tokens[0]=='goto'):
-                        print(VMTranslator.vm_goto(tokens[1]))
-                    elif(tokens[0]=='if-goto'):
-                        print(VMTranslator.vm_if(tokens[1]))
-                elif(len(tokens)==3):
-                    if(tokens[0]=='push'):
-                        print(VMTranslator.vm_push(tokens[1],int(tokens[2])))
-                    elif(tokens[0]=='pop'):
-                        print(VMTranslator.vm_pop(tokens[1],int(tokens[2])))
-                    elif(tokens[0]=='function'):
-                        print(VMTranslator.vm_function(tokens[1],int(tokens[2])))
-                    elif(tokens[0]=='call'):
-                        print(VMTranslator.vm_call(tokens[1],int(tokens[2])))
+    main()
