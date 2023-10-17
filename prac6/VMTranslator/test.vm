@@ -1,5 +1,9 @@
-push constant 2
+push constant 3060
+neg
+pop static 0
+push static 0
+call Math.abs 1
 pop static 1
-label END
-goto END
 
+label END 
+goto END

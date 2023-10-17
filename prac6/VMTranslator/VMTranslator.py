@@ -116,44 +116,146 @@ class VMTranslator:
         return asm_code
 
     def vm_function(function_name, n_vars):
-        asm_code = f"({function_name})\n"  # Declare a function label
-        asm_code += "@SP\nA=M\n"  # Initialize a pointer to the stack
+        asm_code = "(" + function_name + ")\n"  # Declare the function label
         for _ in range(n_vars):
-            asm_code += "M=0\n"  # Initialize local variables to 0
-            asm_code += "A=A+1\n"  # Increment the stack pointer
-        asm_code += "@SP\nM=A\n"  # Update the stack pointer
+            asm_code += "@0\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"  # Push 0 onto the stack 
         return asm_code
 
     def vm_call(function_name, n_args):
-        return_addr = f"RETURN_{function_name}_{n_args}"
-        asm_code = f"@{return_addr}\n"  # Set up a unique return label
-        asm_code += "D=A\n@SP\nA=M\nM=D\n"  # Push the return address onto the stack
-        asm_code += "@SP\nM=M+1\n"  # Increment the stack pointer
-        # Push LCL, ARG, THIS, and THAT onto the stack
-        for segment in ["LCL", "ARG", "THIS", "THAT"]:
-            asm_code += f"@{segment}\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        # Reposition ARG for the called function
-        asm_code += f"@SP\nD=M\n@{n_args + 5}\nD=D-A\n@ARG\nM=D\n"
-        # Reposition LCL for the called function
-        asm_code += "@SP\nD=M\n@LCL\nM=D\n"
-        # Jump to the function
-        asm_code += f"@{function_name}\n0;JMP\n"
-        # Declare the return label
-        asm_code += f"({return_addr})\n"
-        return asm_code
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        # push return address
+        hackAssemblyElementList.append('@'+ function_name)
+        hackAssemblyElementList.append('D=A')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1') 
+        # push LCL
+        hackAssemblyElementList.append('@LCL')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+        # push ARG
+        hackAssemblyElementList.append('@ARG')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+        # push THIS
+        hackAssemblyElementList.append('@THIS')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1') 
+        # push THAT
+        hackAssemblyElementList.append('@THAT')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('A=M')
+        hackAssemblyElementList.append('M=D')
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('M=M+1')
+        # ARG = SP - 5 - number of arguments
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append("@" + str(5+n_args))
+        hackAssemblyElementList.append('D=D-A')    
+        hackAssemblyElementList.append('@ARG')
+        hackAssemblyElementList.append('M=D')
+        # LCL = SP
+        hackAssemblyElementList.append('@SP')
+        hackAssemblyElementList.append('D=M')
+        hackAssemblyElementList.append('@LCL')
+        hackAssemblyElementList.append('M=D')
+        # goto function_name
+        hackAssemblyElementList.append('@' + function_name)
+        hackAssemblyElementList.append('0;JMP')
+        # (return address)
+        hackAssemblyElementList.append('('+ function_name + ')')
+        result = '\n'.join(hackAssemblyElementList)
+        return result
 
     def vm_return():
-        asm_code = "@LCL\nD=M\n@R13\nM=D\n"  # FRAME = LCL
-        asm_code += "@R13\nD=M\n@5\nA=D-A\nD=M\n@R14\nM=D\n"  # RET = *(FRAME - 5)
-        # Reposition the return value for the caller
-        asm_code += "@SP\nAM=M-1\nD=M\n@ARG\nA=M\nM=D\n"
-        asm_code += "@ARG\nD=M+1\n@SP\nM=D\n"  # Restore SP of the caller
-        asm_code += "@R13\nD=M\n@1\nA=D-A\nD=M\n@THAT\nM=D\n"  # Restore THAT
-        asm_code += "@R13\nD=M\n@2\nA=D-A\nD=M\n@THIS\nM=D\n"   # Restore THIS
-        asm_code += "@R13\nD=M\n@3\nA=D-A\nD=M\n@ARG\nM=D\n"   # Restore ARG
-        asm_code += "@R13\nD=M\n@4\nA=D-A\nD=M\n@LCL\nM=D\n"   # Restore LCL
-        asm_code += "@R14\nA=M\n0;JMP\n"  # Return to the caller
-        return asm_code
+        hackAssemblyElementList = []
+
+        # generate Hack assembly code
+        # endFrame = LCL // endFrame is a temporary variable
+        hackAssemblyElementList.append("@LCL")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("M=D")
+        # retAddr = *(endFrame - 5) // gets the return address
+        hackAssemblyElementList.append("@5")
+        hackAssemblyElementList.append('D=D-A')
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@return")
+        hackAssemblyElementList.append("M=D")
+        # *ARG = pop()  // repositions the return value for the caller
+        hackAssemblyElementList.append("@SP")
+        hackAssemblyElementList.append("M=M-1")
+        hackAssemblyElementList.append("A=M")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@ARG")
+        hackAssemblyElementList.append("A=M")
+        hackAssemblyElementList.append("M=D")
+        # SP = ARG + 1 // repositions SP of the caller
+        hackAssemblyElementList.append("@ARG")
+        hackAssemblyElementList.append("D=M+1")
+        hackAssemblyElementList.append("@SP")
+        hackAssemblyElementList.append("M=D")
+        # THAT = *(endFrame - 1) // restores THAT of the caller
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@1")
+        hackAssemblyElementList.append('D=D-A')
+        #hackAssemblyElementList.append('D=D-1')
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@THAT")
+        hackAssemblyElementList.append("M=D")
+        # THIS = *(endFrame - 2) // restores THIS of the caller
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@2")
+        hackAssemblyElementList.append('D=D-A')        
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@THIS")
+        hackAssemblyElementList.append("M=D")
+        # ARG = *(endFrame - 3) // restores ARG of the caller
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@3")
+        hackAssemblyElementList.append('D=D-A')            
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@ARG")
+        hackAssemblyElementList.append("M=D")
+        # LCL = *(endFrame - 4) // restores LCL of the caller
+        hackAssemblyElementList.append("@frame")
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@4")
+        hackAssemblyElementList.append('D=D-A')            
+        hackAssemblyElementList.append('A=D')
+        hackAssemblyElementList.append("D=M")
+        hackAssemblyElementList.append("@LCL")
+        hackAssemblyElementList.append("M=D")        
+        # goto retAddr // goes to return address in the caller's code
+        hackAssemblyElementList.append("@return")
+        hackAssemblyElementList.append("A=M")
+        hackAssemblyElementList.append("0;JMP")
+        result = '\n'.join(hackAssemblyElementList)
+        return result
 
 # A quick-and-dirty parser when run as a standalone script.
 if __name__ == "__main__":
