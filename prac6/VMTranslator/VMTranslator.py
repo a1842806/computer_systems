@@ -121,16 +121,13 @@ class VMTranslator:
         # generate Hack assembly code
         hackAssemblyElementList.append("(" + function_name +")")
         for _ in range(n_vars):
-            hackAssemblyElementList.append('@0')
-            hackAssemblyElementList.append('D=A')
             hackAssemblyElementList.append('@SP')
-            hackAssemblyElementList.append('A=M')
-            hackAssemblyElementList.append('M=D')
-            hackAssemblyElementList.append('@SP')
-            hackAssemblyElementList.append('M=M+1')
+            hackAssemblyElementList.append('AM=M+1')
+            hackAssemblyElementList.append('A=A-1')
+            hackAssemblyElementList.append('M=0')
 
         result = '\n'.join(hackAssemblyElementList)
-        return "result"
+        return result
 
 
     def vm_call(function_name, n_args):
@@ -194,7 +191,7 @@ class VMTranslator:
         # (return address)
         hackAssemblyElementList.append('('+ function_name + ')')
         result = '\n'.join(hackAssemblyElementList)
-        return ""
+        return result
 
     def vm_return():
         hackAssemblyElementList = []
