@@ -116,33 +116,43 @@ class VMTranslator:
         return asm_code
 
     def vm_function(function_name, n_vars):
-        asm_code = f"({function_name})\n"
-        for i in range(n_vars):
-            asm_code += VMTranslator.vm_push("constant", 0)
+        asm_code = f"({function_name})\n"  # Declare a function label
+        asm_code += "@SP\nA=M\n"  # Initialize a pointer to the stack
+        for _ in range(n_vars):
+            asm_code += "M=0\n"  # Initialize local variables to 0
+            asm_code += "A=A+1\n"  # Increment the stack pointer
+        asm_code += "@SP\nM=A\n"  # Update the stack pointer
         return asm_code
 
     def vm_call(function_name, n_args):
-        asm_code = f"@RETURN_{function_name}_{n_args}\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        asm_code += VMTranslator.vm_push("local", 0)
-        asm_code += VMTranslator.vm_push("argument", 0)
-        asm_code += VMTranslator.vm_push("this", 0)
-        asm_code += VMTranslator.vm_push("that", 0)
-        asm_code += f"@SP\nD=M\n@5\nD=D-A\n@{n_args}\nD=D-A\n@ARG\nM=D\n"
-        asm_code += f"@SP\nD=M\n@LCL\nM=D\n"
+        return_addr = f"RETURN_{function_name}_{n_args}"
+        asm_code = f"@{return_addr}\n"  # Set up a unique return label
+        asm_code += "D=A\n@SP\nA=M\nM=D\n"  # Push the return address onto the stack
+        asm_code += "@SP\nM=M+1\n"  # Increment the stack pointer
+        # Push LCL, ARG, THIS, and THAT onto the stack
+        for segment in ["LCL", "ARG", "THIS", "THAT"]:
+            asm_code += f"@{segment}\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        # Reposition ARG for the called function
+        asm_code += f"@SP\nD=M\n@{n_args + 5}\nD=D-A\n@ARG\nM=D\n"
+        # Reposition LCL for the called function
+        asm_code += "@SP\nD=M\n@LCL\nM=D\n"
+        # Jump to the function
         asm_code += f"@{function_name}\n0;JMP\n"
-        asm_code += f"(RETURN_{function_name}_{n_args})\n"
+        # Declare the return label
+        asm_code += f"({return_addr})\n"
         return asm_code
 
     def vm_return():
-        asm_code = f"@LCL\nD=M\n@R13\nM=D\n"
-        asm_code += f"@5\nA=D-A\nD=M\n@R14\nM=D\n"
-        asm_code += f"@SP\nAM=M-1\nD=M\n@ARG\nA=M\nM=D\n"
-        asm_code += f"@ARG\nD=M+1\n@SP\nM=D\n"
-        asm_code += f"@R13\nAM=M-1\nD=M\n@THAT\nM=D\n"
-        asm_code += f"@R13\nAM=M-1\nD=M\n@THIS\nM=D\n"
-        asm_code += f"@R13\nAM=M-1\nD=M\n@ARG\nM=D\n"
-        asm_code += f"@R13\nAM=M-1\nD=M\n@LCL\nM=D\n"
-        asm_code += f"@R14\nA=M\n0;JMP\n"
+        asm_code = "@LCL\nD=M\n@R13\nM=D\n"  # FRAME = LCL
+        asm_code += "@5\nA=D-A\nD=M\n@R14\nM=D\n"  # RET = *(FRAME - 5)
+        # Reposition the return value for the caller
+        asm_code += "@SP\nAM=M-1\nD=M\n@ARG\nA=M\nM=D\n"
+        asm_code += "@ARG\nD=M+1\n@SP\nM=D\n"  # Restore SP of the caller
+        asm_code += "@R13\nAM=M-1\nD=M\n@THAT\nM=D\n"  # Restore THAT
+        asm_code += "@R13\nAM=M-1\nD=M\n@THIS\nM=D\n"  # Restore THIS
+        asm_code += "@R13\nAM=M-1\nD=M\n@ARG\nM=D\n"  # Restore ARG
+        asm_code += "@R13\nAM=M-1\nD=M\n@LCL\nM=D\n"  # Restore LCL
+        asm_code += "@R14\nA=M\n0;JMP\n"  # Return to the caller
         return asm_code
 
 # A quick-and-dirty parser when run as a standalone script.

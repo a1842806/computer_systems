@@ -19,7 +19,7 @@ set RAM[3] 3000,    // base address of the this segment
 set RAM[4] 3010,    // base address of the that segment
 
 
-repeat 100 {        // Change this number to cover the number of instructions in the asm test file
+repeat 250 {        // Change this number to cover the number of instructions in the asm test file
   ticktock;
 }
 

@@ -1,0 +1,5 @@
+push constant 2
+pop static 1
+label END
+goto END
+

@@ -1,7 +1,7 @@
 // Example VM Test file; does not compare, but generates a .cmp file for the given .vm file
 // Run using VMEmulator
 
-load TranslatorTest00.vm,
+load testASM.vm,
 output-file test.cmp,
 output-list RAM[0]%D1.8.1 RAM[1]%D1.8.1 RAM[2]%D1.8.1 RAM[3]%D1.8.1 RAM[4]%D1.8.1
             RAM[256]%D1.8.1 RAM[257]%D1.8.1 RAM[258]%D1.8.1
@@ -18,7 +18,7 @@ set this 3000,     // base address of the this segment
 set that 3010,     // base address of the that segment
 
 
-repeat 25 {        // Change this number to cover the number of instructions in the VM test file
+repeat 2500 {        // Change this number to cover the number of instructions in the VM test file
   vmstep;
 }
 
