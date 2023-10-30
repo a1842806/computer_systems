@@ -1,6 +1,0 @@
-push constant 35
-push constant 12
-or
-push constant 0
-push constant 62
-or

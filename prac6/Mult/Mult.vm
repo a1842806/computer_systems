@@ -1,34 +1,61 @@
+// Calculates a = x*y
+// a is a local variable
+// x & y are static variables
+
+// Put your code here.
 push constant 0
 pop local 0
+
 push static 0
-push constant 0
-lt
-if-goto NEG
+pop static 2
+
 push static 0
-pop static 3
 push static 1
-pop static 5
+gt
+if-goto SWAP
 goto LOOP
-label NEG
-push static 0
-neg
-pop static 3
+
+label SWAP
 push static 1
-neg
-pop static 5
+pop static 2
+push static 0
+pop static 1
+
 label LOOP
-push static 3
+
+push static 2
 push constant 0
 eq
 if-goto END
-push static 5
+
+push static 2
+push constant 0
+lt 
+if-goto NEG
+
+push static 1
 push local 0
 add
 pop local 0
-push static 3
+
+push static 2
 push constant 1
 sub
-pop static 3
+pop static 2
 goto LOOP
+
+label NEG
+push local 0
+push static 1
+sub
+pop local 0
+
+push static 2
+push constant 1
+add
+pop static 2
+goto LOOP
+
+
 label END
 goto END

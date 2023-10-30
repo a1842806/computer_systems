@@ -1,4 +1,0 @@
-push constant 0
-not
-push constant 62
-not
