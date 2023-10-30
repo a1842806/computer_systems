@@ -1,0 +1,5 @@
+push static 0
+push static 1
+push constant 2
+push this 0
+push that 0

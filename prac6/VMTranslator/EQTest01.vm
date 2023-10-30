@@ -1,0 +1,6 @@
+push constant 15
+push constant 35
+eq
+push constant 30
+push constant 30
+eq
