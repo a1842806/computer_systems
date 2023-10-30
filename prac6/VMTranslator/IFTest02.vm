@@ -1,5 +1,0 @@
-label AGAIN
-push constant 1
-push constant 0
-lt
-if-goto AGAIN

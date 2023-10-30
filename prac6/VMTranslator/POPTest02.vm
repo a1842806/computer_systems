@@ -1,7 +1,0 @@
-push static 0
-push constant 235
-push constant 111
-pop static 0
-pop static 1
-push static 0
-pop static 2
