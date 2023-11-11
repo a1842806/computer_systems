@@ -290,7 +290,7 @@ class CompilerParser :
         tree.addChild(child)
         self.next()
 
-        if self.current().value == "else":
+        if self.have("keyword", "else"):
             child = self.mustBe("keyword", "else")
             tree.addChild(child)
             self.next()
