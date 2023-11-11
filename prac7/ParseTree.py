@@ -49,7 +49,19 @@ class ParseTree():
         @return The node's value. Should only be used on terminal nodes/leaves, and empty otherwise.
         """
         return self.value
-    
+
+    def mustbe(self, node_type, value):
+        """
+        Check if the current token matches the expected type and value.
+        If so, advance to the next token, returning the current token, otherwise throw/raise a ParseException.
+        @return token that was current prior to advancing.
+        """
+        if(self.node_type == node_type and self.value == value):
+            return self
+        else:
+            raise ParseException("Expected " + node_type + " " + value + " but got " + self.node_type + " " + self.value
+            + " at line " + str(self.line_number) + " column " + str(self.column_number))
+
 
     def __str__(self,depth=0):
         """

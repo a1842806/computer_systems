@@ -258,74 +258,63 @@ class CompilerParser :
                 self.next()
         return tree
 
-    def compileSubIf(self):
-        tree = ParseTree("ifStatement","")
-        while self.tokens != []:
-            if len(self.tokens) == 0:
-                break
-            if self.current().value == "else":
-                node = self.current()
-                child = ParseTree(node.node_type, node.value)
-                tree.addChild(child)
-                self.next()
-                # tree.addChild(self.compileStatements())
-                # break
-            elif self.current().value == "skip":
-                tree.addChild(self.compileExpression())
-            elif self.current().value == "}":
-                # print(len(self.tokens))
-                tree.addChild(self.compileStatements())
-                node = self.current()
-                child = ParseTree(node.node_type, node.value)
-                tree.addChild(child)
-                if len(self.tokens) == 1:
-                    break
-                self.next()
-                # break
-            else:
-                node = self.current()
-                child = ParseTree(node.node_type, node.value)
-                tree.addChild(child)
-                prev_node = node
-                self.next()
-            # print("PASS: ", self.current().value)
-
     def compileIf(self):
         """
         Generates a parse tree for an if statement
         @return a ParseTree that represents the statement
         """
         tree = ParseTree("ifStatement","")
+        
+        Token = self.current()
+        child = ParseTree.mustbe(Token, "keyword", "if")
+        tree.addChild(child)
+        self.next()
 
-        while self.tokens != []:
-            if len(self.tokens) == 0:
-                break
-            if self.current().value == "else":
-                node = self.current()
-                child = ParseTree(node.node_type, node.value)
-                tree.addChild(child)
-                self.next()
-                # tree.addChild(self.compileStatements())
-                # break
-            elif self.current().value == "skip":
-                tree.addChild(self.compileExpression())
-            elif self.current().value == "}":
-                # print(len(self.tokens))
-                tree.addChild(self.compileStatements())
-                node = self.current()
-                child = ParseTree(node.node_type, node.value)
-                tree.addChild(child)
-                if len(self.tokens) == 1:
-                    break
-                self.next()
-                # break
-            else:
-                node = self.current()
-                child = ParseTree(node.node_type, node.value)
-                tree.addChild(child)
-                prev_node = node
-                self.next()
-            # print("PASS: ", self.current().value)
+        Token = self.current()
+        child = ParseTree.mustbe(Token, "symbol", "(")
+        tree.addChild(child)
+        self.next()
+
+        child = self.compileExpression()
+        tree.addChild(child)
+
+        Token = self.current()
+        child = ParseTree.mustbe(Token, "symbol", ")")
+        tree.addChild(child)
+        self.next()
+
+        Token = self.current()
+        child = ParseTree.mustbe(Token, "symbol", "{")
+        tree.addChild(child)
+        self.next()
+
+        child = self.compileStatements()
+        tree.addChild(child)
+
+        Token = self.current()
+        child = ParseTree.mustbe(Token, "symbol", "}")
+        tree.addChild(child)
+        self.next()
+
+        if self.current().value == "else":
+            Token = self.current()
+            child = ParseTree.mustbe(Token, "keyword", "else")
+            tree.addChild(child)
+            self.next()
+
+            Token = self.current()
+            child = ParseTree.mustbe(Token, "symbol", "{")
+            tree.addChild(child)
+            self.next()
+
+            child = self.compileStatements()
+            tree.addChild(child)
+
+            Token = self.current()
+            child = ParseTree.mustbe(Token, "symbol", "}")
+            tree.addChild(child)
+            self.next()
+
         return tree
 
     
