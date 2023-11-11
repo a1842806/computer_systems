@@ -309,8 +309,6 @@ class CompilerParser :
                 # break
             elif self.current().value == "skip":
                 tree.addChild(self.compileExpression())
-            elif self.current().value == "if":
-                tree.addChild(self.compileSubIf())  
             elif self.current().value == "}" and prev_node.value == "{":
                 # print(len(self.tokens))
                 tree.addChild(self.compileStatements())
