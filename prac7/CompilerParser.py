@@ -315,17 +315,28 @@ class CompilerParser :
         @return a ParseTree that represents the statement
         """
         tree = ParseTree("whileStatement","")
-        while self.tokens != []:
-            if len(self.tokens) == 0:
-                break
-            if self.current().value == "skip":
-                tree.addChild(self.compileExpression())
-            else:
-                node = self.current()
-                child = ParseTree(node.node_type, node.value)
-                tree.addChild(child)
-                prev_node = node
-                self.next()
+        
+        tree.addChild(self.mustBe("keyword", "while"))
+        self.next()
+
+        tree.addChild(self.mustBe("symbol", "("))
+        self.next()
+
+        tree.addChild(self.compileExpression())
+        self.next()
+
+        tree.addChild(self.mustBe("symbol", ")"))
+        self.next()
+
+        tree.addChild(self.mustBe("symbol", "{"))
+        self.next()
+
+        tree.addChild(self.compileStatements())
+        self.next()
+
+        tree.addChild(self.mustBe("symbol", "}"))
+        self.next()
+
         return tree
 
 
@@ -359,7 +370,22 @@ class CompilerParser :
         Generates a parse tree for a return statement
         @return a ParseTree that represents the statement
         """
-        return None 
+
+        tree = ParseTree("returnStatement","")
+
+        tree.addChild(self.mustBe("keyword", "return"))
+        self.next()
+
+        if self.have("symbol", ";"):
+            tree.addChild(self.mustBe("symbol", ";"))
+            self.next()
+        else:
+            tree.addChild(self.compileExpression())
+            self.next()
+            tree.addChild(self.mustBe("symbol", ";"))
+            self.next()
+
+        return tree
 
 
     def compileExpression(self):
@@ -368,10 +394,23 @@ class CompilerParser :
         @return a ParseTree that represents the expression
         """
         tree = ParseTree("expression","")
-        node = self.current()
-        child = ParseTree(node.node_type, node.value)
-        tree.addChild(child)
+
+        print(self.current().value)
+
+        if self.have("keyword", "skip"):
+            tree.addChild(self.current())
+            self.next()
+            return tree
+        
+        tree.addChild(self.compileTerm())
         self.next()
+
+        if self.have("symbol", "+") or self.have("symbol", "-") or self.have("symbol", "*") or self.have("symbol", "/") or self.have("symbol", "&") or self.have("symbol", "|") or self.have("symbol", "<") or self.have("symbol", ">") or self.have("symbol", "="):
+            tree.addChild(self.current())
+            self.next()
+            tree.addChild(self.compileTerm())
+            self.next()
+
         return tree
 
 
@@ -380,7 +419,37 @@ class CompilerParser :
         Generates a parse tree for an expression term
         @return a ParseTree that represents the expression term
         """
-        return None 
+        tree = ParseTree("term","")
+        
+        print(self.current().value)
+
+        if self.have("integerConstant", "") or self.have("stringConstant", "") or self.have("keyword", "true") or self.have("keyword", "false") or self.have("keyword", "null") or self.have("keyword", "this"):
+            tree.addChild(self.current())
+            self.next()
+            return tree
+        
+        if self.have("symbol", "("):
+            tree.addChild(self.current())
+            self.next()
+            tree.addChild(self.compileExpression())
+            self.next()
+            tree.addChild(self.mustBe("symbol", ")"))
+            self.next()
+            return tree
+
+        if self.have("symbol", "-") or self.have("symbol", "~"):
+            tree.addChild(self.current())
+            self.next()
+            tree.addChild(self.compileTerm())
+            self.next()
+            return tree
+
+        if self.have("identifier", ""):
+            tree.addChild(self.current())
+            self.next()
+            return tree
+
+        return tree
 
 
     def compileExpressionList(self):
@@ -449,7 +518,12 @@ if __name__ == "__main__":
     tokens.append(Token("keyword","skip"))
     tokens.append(Token("symbol",")"))
     tokens.append(Token("symbol","{"))
-    
+    tokens.append(Token("integerConstant","0"))
+    tokens.append(Token("symbol","+"))
+    tokens.append(Token("symbol","("))
+    tokens.append(Token("identifier","a"))
+    tokens.append(Token("symbol","-"))
+    tokens.append(Token("identifier","b"))
     tokens.append(Token("symbol","}"))
 
     
