@@ -413,9 +413,9 @@ class CompilerParser :
         Check if the current token matches the expected type and value.
         @return True if a match, False otherwise
         """
-        if self.pos == len(self.tokens)-1:
+        if self.tokens == []:
             return False
-        if self.tokens[self.pos].type == expectedType and self.tokens[self.pos].value == expectedValue:
+        if self.current().node_type == expectedType and self.current().value == expectedValue:
             return True
         return False
 
@@ -449,28 +449,9 @@ if __name__ == "__main__":
     tokens.append(Token("keyword","skip"))
     tokens.append(Token("symbol",")"))
     tokens.append(Token("symbol","{"))
-    tokens.append(Token("keyword","if"))
-    tokens.append(Token("symbol","("))
-    tokens.append(Token("keyword","skip"))
-    tokens.append(Token("symbol",")"))
-    tokens.append(Token("symbol","{"))
+    
     tokens.append(Token("symbol","}"))
-    tokens.append(Token("keyword","else"))
-    tokens.append(Token("symbol","{"))
-    tokens.append(Token("symbol","}"))
-    tokens.append(Token("symbol","}"))
-    tokens.append(Token("keyword","else"))
-    tokens.append(Token("symbol","{"))
-    tokens.append(Token("keyword","if"))
-    tokens.append(Token("symbol","("))
-    tokens.append(Token("keyword","skip"))
-    tokens.append(Token("symbol",")"))
-    tokens.append(Token("symbol","{"))
-    tokens.append(Token("symbol","}"))
-    tokens.append(Token("keyword","else"))
-    tokens.append(Token("symbol","{"))
-    tokens.append(Token("symbol","}"))
-    tokens.append(Token("symbol","}"))
+
     
     parser = CompilerParser(tokens)
     try:
