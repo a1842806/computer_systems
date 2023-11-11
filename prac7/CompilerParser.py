@@ -9,7 +9,6 @@ class CompilerParser :
         """
         self.tokens = tokens
         self.pos = 0
-    
 
     def compileProgram(self):
         """
@@ -265,53 +264,45 @@ class CompilerParser :
         """
         tree = ParseTree("ifStatement","")
         
-        Token = self.current()
-        child = ParseTree.mustbe(Token, "keyword", "if")
+        child = self.mustBe("keyword", "if")
         tree.addChild(child)
         self.next()
 
-        Token = self.current()
-        child = ParseTree.mustbe(Token, "symbol", "(")
+        child = self.mustBe("symbol", "(")
         tree.addChild(child)
         self.next()
 
         child = self.compileExpression()
         tree.addChild(child)
 
-        Token = self.current()
-        child = ParseTree.mustbe(Token, "symbol", ")")
+        child = self.mustBe("symbol", ")")
         tree.addChild(child)
         self.next()
 
-        Token = self.current()
-        child = ParseTree.mustbe(Token, "symbol", "{")
+        child = self.mustBe("symbol", "{")
         tree.addChild(child)
         self.next()
 
         child = self.compileStatements()
         tree.addChild(child)
 
-        Token = self.current()
-        child = ParseTree.mustbe(Token, "symbol", "}")
+        child = self.mustBe("symbol", "}")
         tree.addChild(child)
         self.next()
 
         if self.current().value == "else":
-            Token = self.current()
-            child = ParseTree.mustbe(Token, "keyword", "else")
+            child = self.mustBe("keyword", "else")
             tree.addChild(child)
             self.next()
 
-            Token = self.current()
-            child = ParseTree.mustbe(Token, "symbol", "{")
+            child = self.mustBe("symbol", "{")
             tree.addChild(child)
             self.next()
 
             child = self.compileStatements()
             tree.addChild(child)
 
-            Token = self.current()
-            child = ParseTree.mustbe(Token, "symbol", "}")
+            child = self.mustBe("symbol", "}")
             tree.addChild(child)
             self.next()
 
@@ -435,8 +426,10 @@ class CompilerParser :
         If so, advance to the next token, returning the current token, otherwise throw/raise a ParseException.
         @return token that was current prior to advancing.
         """
-        
-        return None
+        if self.current().node_type == expectedType and self.current().value == expectedValue:
+            return self.current()
+        else:
+            raise ParseException("Expected " + expectedType + " " + expectedValue + " but got " + self.current().node_type + " " + self.current().value)
     
 
 if __name__ == "__main__":
