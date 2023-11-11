@@ -323,7 +323,6 @@ class CompilerParser :
         self.next()
 
         tree.addChild(self.compileExpression())
-        self.next()
 
         tree.addChild(self.mustBe("symbol", ")"))
         self.next()
@@ -332,7 +331,6 @@ class CompilerParser :
         self.next()
 
         tree.addChild(self.compileStatements())
-        self.next()
 
         tree.addChild(self.mustBe("symbol", "}"))
         self.next()
@@ -381,7 +379,7 @@ class CompilerParser :
             self.next()
         else:
             tree.addChild(self.compileExpression())
-            self.next()
+            
             tree.addChild(self.mustBe("symbol", ";"))
             self.next()
 
@@ -395,7 +393,6 @@ class CompilerParser :
         """
         tree = ParseTree("expression","")
 
-        print(self.current().value)
 
         if self.have("keyword", "skip"):
             tree.addChild(self.current())
@@ -421,7 +418,6 @@ class CompilerParser :
         """
         tree = ParseTree("term","")
         
-        print(self.current().value)
 
         if self.have("integerConstant", "") or self.have("stringConstant", "") or self.have("keyword", "true") or self.have("keyword", "false") or self.have("keyword", "null") or self.have("keyword", "this"):
             tree.addChild(self.current())
@@ -513,23 +509,17 @@ if __name__ == "__main__":
     tokens = []
 
     # if ( skip ) { if ( skip ) { } else { } } else { if ( skip ) { } else { } }
-    tokens.append(Token("keyword","if"))
+    tokens.append(Token("keyword","while"))
     tokens.append(Token("symbol","("))
     tokens.append(Token("keyword","skip"))
     tokens.append(Token("symbol",")"))
     tokens.append(Token("symbol","{"))
-    tokens.append(Token("integerConstant","0"))
-    tokens.append(Token("symbol","+"))
-    tokens.append(Token("symbol","("))
-    tokens.append(Token("identifier","a"))
-    tokens.append(Token("symbol","-"))
-    tokens.append(Token("identifier","b"))
     tokens.append(Token("symbol","}"))
 
     
     parser = CompilerParser(tokens)
     try:
-        result = parser.compileIf()
+        result = parser.compileWhile()
         print(result)
     except ParseException:
         print("Error Parsing!")
