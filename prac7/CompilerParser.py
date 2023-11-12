@@ -415,7 +415,6 @@ class CompilerParser :
         """
         tree = ParseTree("term","")
 
-        
         if self.have("symbol", "("):
             tree.addChild(self.current())
             self.next()
@@ -435,7 +434,7 @@ class CompilerParser :
             return tree
 
         #varName[expression]
-        if self.have("identifier", ""):
+        if self.have("identifier", self.current().value):
             tree.addChild(self.current())
             self.next()
 
@@ -448,12 +447,39 @@ class CompilerParser :
                 tree.addChild(self.mustBe("symbol", "]"))
                 self.next()
                 
+            # subroutineCall
+            elif self.have("symbol", "("):
+                tree.addChild(self.mustBe("symbol", "("))
+                self.next()
+
+                tree.addChild(self.compileExpressionList())
+
+                tree.addChild(self.mustBe("symbol", ")"))
+                self.next()
+
+            # className . subroutineName ( expressionList )
+            elif self.have("symbol", "."):
+                tree.addChild(self.mustBe("symbol", "."))
+                self.next()
+
+                tree.addChild(self.current())
+                self.next()
+
+                tree.addChild(self.mustBe("symbol", "("))
+                self.next()
+
+                tree.addChild(self.compileExpressionList())
+
+                tree.addChild(self.mustBe("symbol", ")"))
+                self.next()
+
             return tree
         
+
         # integerConstant | stringConstant | keywordConstant
         tree.addChild(self.current())
         self.next()
-        
+
         return tree
 
 
@@ -465,6 +491,7 @@ class CompilerParser :
 
         tree = ParseTree("expressionList","")
 
+        # print(self.current().value)
         tree.addChild(self.compileExpression())
 
         while self.have("symbol", ","):
@@ -473,7 +500,7 @@ class CompilerParser :
 
             tree.addChild(self.compileExpression())
 
-        return None 
+        return tree
 
 
     def next(self):
@@ -528,24 +555,33 @@ if __name__ == "__main__":
     """
     tokens = []
 
-    #  ( ( a + ( 1 - c ) ) > 5 ) =  true
-    tokens.append(Token("symbol","("))
-    tokens.append(Token("symbol","("))
-    tokens.append(Token("identifier","a"))
-    tokens.append(Token("symbol","+"))
+    #  Main . myFunc ( 1 , Hello )  
+    tokens.append(Token("identifier","Main"))
+    tokens.append(Token("symbol","."))
+    tokens.append(Token("identifier","myFunc"))
     tokens.append(Token("symbol","("))
     tokens.append(Token("integerConstant","1"))
-    tokens.append(Token("symbol","-"))
-    tokens.append(Token("identifier","c"))
+    tokens.append(Token("symbol",","))
+    tokens.append(Token("stringConstant","Hello"))
     tokens.append(Token("symbol",")"))
-    tokens.append(Token("symbol",")"))
-    tokens.append(Token("symbol",">"))
-    tokens.append(Token("integerConstant","5"))
-    tokens.append(Token("symbol",")"))
-    tokens.append(Token("symbol","="))
-    tokens.append(Token("keyword","true"))
 
-    
+    # ( ( a + ( 1 - c ) ) > 5 ) = true  
+    # tokens.append(Token("symbol","("))
+    # tokens.append(Token("symbol","("))
+    # tokens.append(Token("identifier","a"))
+    # tokens.append(Token("symbol","+"))
+    # tokens.append(Token("symbol","("))
+    # tokens.append(Token("integerConstant","1"))
+    # tokens.append(Token("symbol","-"))
+    # tokens.append(Token("identifier","c"))
+    # tokens.append(Token("symbol",")"))
+    # tokens.append(Token("symbol",")"))
+    # tokens.append(Token("symbol",">"))
+    # tokens.append(Token("integerConstant","5"))
+    # tokens.append(Token("symbol",")"))
+    # tokens.append(Token("symbol","="))
+    # tokens.append(Token("keyword","true"))
+
     # tokens.append(Token("symbol","("))
     # tokens.append(Token("keyword","skip"))
     # tokens.append(Token("symbol",")"))
